@@ -43,6 +43,7 @@ void push(Buf *buf, char c)
 Buf line	= { .cap = 1 };
 Buf out_name	= { .cap = 1 };
 Buf out_buf	= { .cap = 1 };
+Buf lis_buf	= { .cap = 1 };
 
 // Only do codegen for current file if no syntax error
 bool syn_err;
@@ -145,8 +146,6 @@ Ins const ps_ins[] = {
 	},
 };
 #define NUM_PS_INS	(sizeof (ps_ins) / sizeof (Ins))
-#define DATA_IDX	0
-#define SET_IDX		1
 
 typedef struct {
 	char	*name;
@@ -403,8 +402,6 @@ void *tryMalloc(int len)
 	return ret;
 }
 
-// TODO LISTING FILE
-
 void parseDouble(char const *sym1, int len1, char const *sym2, int len2)
 {
 	for (int i = 0; i < NUM_INS; i++) {
@@ -429,8 +426,8 @@ void parseDouble(char const *sym1, int len1, char const *sym2, int len2)
 
 			if (sym2[0] == '+' || sym2[0] == '-' || (sym2[0] >= '0' && sym2[0] <= '9')) {
 				int val = parseNum(sym2, len2);
-				push(&out_buf, val & 0x0000ff);
-				push(&out_buf, (val & 0x00ff00) >> 8);
+				push(&out_buf, val & 0xff);
+				push(&out_buf, (val & 0xff00) >> 8);
 				push(&out_buf, val >> 16);
 				return;
 			}
@@ -489,14 +486,14 @@ void parseDouble(char const *sym1, int len1, char const *sym2, int len2)
 			int num = parseNum(sym2, len2);
 
 			switch (i) {
-				case DATA_IDX:
-					push(&out_buf, num & 0x000000ff);
-					push(&out_buf, (num & 0x0000ff00) >> 8);
-					push(&out_buf, (num & 0x00ff0000) >> 16);
+				case 0:
+					push(&out_buf, num & 0xff);
+					push(&out_buf, (num & 0xff00) >> 8);
+					push(&out_buf, (num & 0xff0000) >> 16);
 					push(&out_buf, num >> 24);
 					return;
 
-				case SET_IDX:
+				case 1:
 					if (!has_lab) {
 						fprintf(
 							stderr,
@@ -537,6 +534,33 @@ void parseDouble(char const *sym1, int len1, char const *sym2, int len2)
 	syn_err = true;
 }
 
+void growLisBuf(char const *line, int len)
+{
+	int start = lis_buf.len;
+
+	for (int i = 0; i < len + 19; i++) {
+		push(&lis_buf, 0);
+	}
+
+	int word_idx = out_buf.len / 4;
+
+	if (line[len - 1] == ':') {
+		for (int i = 0; i < 9; i++) {
+			lis_buf.data[start + 9 + i] = ' ';
+		}
+	} else {
+		word_idx--;
+	}
+
+	sprintf(lis_buf.data + start, "%08x", word_idx);
+
+	// Need to do this separately as sprintf() and snprintf() append a terminating null byte
+	lis_buf.data[start + 8] = ' ';
+
+	memcpy(lis_buf.data + start + 18, line, len);
+	lis_buf.data[start + len + 18] = '\n';
+}
+
 // Handles labels recursively
 void parseLine(char const *data, int len, bool parent_has_lab)
 {
@@ -567,6 +591,7 @@ void parseLine(char const *data, int len, bool parent_has_lab)
 		has_lab = parent_has_lab;
 
 		parseSingle(data, len);
+		growLisBuf(data, len);
 		return;
 	}
 
@@ -599,6 +624,8 @@ void parseLine(char const *data, int len, bool parent_has_lab)
 			.word_idx = out_buf.len / 4,
 			.used = false,
 		});
+
+		growLisBuf(data, i + 1);
 
 next_line:
 		i++;
@@ -642,6 +669,7 @@ next_line:
 	}
 
 	parseDouble(data, i, data + j, len - j);
+	growLisBuf(data, len);
 }
 
 void fillLabels()
@@ -664,8 +692,8 @@ void fillLabels()
 				write = def_word_idx;
 			}
 
-			out_buf.data[4 * use_word_idx + 1] = write & 0x0000ff;
-			out_buf.data[4 * use_word_idx + 2] = (write & 0x00ff00) >> 8;
+			out_buf.data[4 * use_word_idx + 1] = write & 0xff;
+			out_buf.data[4 * use_word_idx + 2] = (write & 0xff00) >> 8;
 			out_buf.data[4 * use_word_idx + 3] = write >> 16;
 			goto next_use;
 		}
@@ -699,6 +727,35 @@ next_use:	{}
 	}
 }
 
+void fillLisBuf()
+{
+	int i = 9;
+	for (int j = 0; j < out_buf.len / 4; j++) {
+		int word = *(int *) (out_buf.data + 4 * j);
+
+		while (lis_buf.data[i] == ' ') {
+			i += 9;
+
+			while (lis_buf.data[i] != '\n') {
+				i++;
+			}
+
+			i += 10;
+		}
+
+		sprintf(lis_buf.data + i, "%08x", word);
+		lis_buf.data[i + 8] = ' ';
+
+		i += 9;
+
+		while (lis_buf.data[i] != '\n') {
+			i++;
+		}
+
+		i += 10;
+	}
+}
+
 void writeAll(int fd, char const *data, int len)
 {
 	int written = 0;
@@ -729,6 +786,7 @@ int main(int argc, char *argv[])
 	line.data = tryMalloc(1);
 	out_name.data = tryMalloc(1);
 	out_buf.data = tryMalloc(1);
+	lis_buf.data = tryMalloc(1);
 	defs.data = tryMalloc(sizeof (Label));
 	uses.data = tryMalloc(sizeof (Label));
 
@@ -744,6 +802,7 @@ int main(int argc, char *argv[])
 
 		line_no = 1;
 		out_buf.len = 0;
+		lis_buf.len = 0;
 		defs.len = 0;
 		uses.len = 0;
 		while (true) {
@@ -789,6 +848,7 @@ int main(int argc, char *argv[])
 
 eof:
 		fillLabels();
+		fillLisBuf();
 
 		if (syn_err) {
 			exit_code = EXIT_FAILURE;
@@ -812,6 +872,20 @@ eof:
 				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
 				return EXIT_FAILURE;
 			}
+
+			out_name.data[out_name.len - 1] = 'l';
+			int lis = creat(out_name.data, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+			if (lis < 0) {
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
+				return EXIT_FAILURE;
+			}
+
+			writeAll(lis, lis_buf.data, lis_buf.len);
+
+			if (close(lis) < 0) {
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
+				return EXIT_FAILURE;
+			}
 		}
 
 		if (fclose(src) != 0) {
@@ -830,6 +904,7 @@ eof:
 	free(line.data);
 	free(out_name.data);
 	free(out_buf.data);
+	free(lis_buf.data);
 	free(defs.data);
 	free(uses.data);
 	return exit_code;

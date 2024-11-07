@@ -12,9 +12,6 @@ char const *const opts[] = {
 	"-before",
 	"-after",
 };
-#define TRACE_IDX	0
-#define BEFORE_IDX	1
-#define AFTER_IDX	2
 
 typedef struct {
 	char	*data;
@@ -61,26 +58,6 @@ void printMem()
 	}
 }
 
-#define LDC_IDX		0
-#define ADC_IDX		1
-#define LDL_IDX		2
-#define STL_IDX		3
-#define LDNL_IDX	4
-#define STNL_IDX	5
-#define ADD_IDX		6
-#define SUB_IDX		7
-#define SHL_IDX		8
-#define SHR_IDX		9
-#define ADJ_IDX		10
-#define A2SP_IDX	11
-#define SP2A_IDX	12
-#define CALL_IDX	13
-#define RETURN_IDX	14
-#define BRZ_IDX		15
-#define BRLZ_IDX	16
-#define BR_IDX		17
-#define HALT		18
-
 void exec(bool print)
 {
 	int a = 0;
@@ -92,69 +69,69 @@ void exec(bool print)
 		int ins = word & 0xff;
 		int op = word >> 8;
 		switch (ins) {
-			case LDC_IDX:
+			case 0:
 				b = a;
 				a = op;
 				break;
-			case ADC_IDX:
+			case 1:
 				a += op;
 				break;
-			case LDL_IDX:
+			case 2:
 				b = a;
 				a = *(int *) (mem.data + 4 * (sp + op));
 				break;
-			case STL_IDX:
+			case 3:
 				*(int *) (mem.data + 4 * (sp + op)) = a;
 				a = b;
 				break;
-			case LDNL_IDX:
+			case 4:
 				a = *(int *) (mem.data + 4 * (a + op));
 				break;
-			case STNL_IDX:
+			case 5:
 				*(int *) (mem.data + 4 * (a + op)) = b;
 				break;
-			case ADD_IDX:
+			case 6:
 				a += b;
 				break;
-			case SUB_IDX:
+			case 7:
 				a = b - a;
 				break;
-			case SHL_IDX:
+			case 8:
 				a = b << a;
 				break;
-			case SHR_IDX:
+			case 9:
 				a = b >> a;
 				break;
-			case ADJ_IDX:
+			case 10:
 				sp += op;
 				break;
-			case A2SP_IDX:
+			case 11:
 				sp = a;
 				a = b;
 				break;
-			case SP2A_IDX:
+			case 12:
 				b = a;
 				a = sp;
 				break;
-			case CALL_IDX:
+			case 13:
 				b = a;
 				a = pc;
 				pc += op;
 				break;
-			case RETURN_IDX:
+			case 14:
 				pc = a;
 				a = b;
 				break;
-			case BRZ_IDX:
+			case 15:
 				pc += (a == 0) * op;
 				break;
-			case BRLZ_IDX:
+			case 16:
 				pc += (a < 0) * op;
 				break;
-			case BR_IDX:
+			case 17:
 				pc += op;
 				break;
-			case HALT:
+			case 18:
 				return;
 			default:
 				fprintf(stderr, COL_RED "error: " COL_END "unknown instruction with code 0x%02x at pc=0x%08x\n", ins, pc);
@@ -239,7 +216,7 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < 3; i++) {
 			c = fgetc(file);
 			if (c == EOF) {
-				fprintf(stderr, COL_RED "error: " COL_END "insufficient bytes at word address %d\n", mem.len / 4);
+				fprintf(stderr, COL_RED "error: " COL_END "insufficient bytes at word address 0x%08x\n", mem.len / 4);
 				return EXIT_FAILURE;
 			}
 
@@ -248,21 +225,22 @@ int main(int argc, char *argv[])
 	}
 
 	switch (opt) {
-		case BEFORE_IDX:
+		case 0:
+			exec(true);
+			break;
+		case 1:
 			printMem();
 			break;
-		case AFTER_IDX:
+		case 2:
 			exec(false);
 			printMem();
-			break;
-		case TRACE_IDX:
-			exec(true);
 			break;
 		default:
 			fprintf(stderr, COL_RED "bug: " COL_END "unimplemented option: idx: %d\n", opt);
 			return EXIT_FAILURE;
 	}
 
+	free(mem.data);
 	if (fclose(file) != 0) {
 		fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close file '%s': %s\n", argv[2], strerror(errno));
 		return EXIT_FAILURE;
