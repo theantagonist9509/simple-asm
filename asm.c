@@ -282,11 +282,12 @@ int parseUpToBaseTen(int base, char const *str, int len)
 		if (!(str[i] >= '0' && str[i] < '0' + base)) {
 			fprintf(
 				stderr,
-				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "unexpected character '%c'\n"
-				"	%.*s\n",
+				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "expected %s literal; found:\n"
+				"	%s%.*s\n",
 				src_name,
 				line_no,
-				str[i],
+				(base == 8 ? "octal" : "decimal"),
+				(base == 8 ? "0" : ""),
 				len,
 				str
 			);
@@ -309,11 +310,10 @@ int parseHex(char const *str, int len)
 		if (!(str[i] >= '0' && str[i] <= '9' || str[i] >= 'A' && str[i] <= 'F' || str[i] >= 'a' && str[i] <= 'f')) {
 			fprintf(
 				stderr,
-				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "unexpected character '%c'\n"
-				"	%.*s\n",
+				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "expected hexadecimal literal; found:\n"
+				"	0x%.*s\n",
 				src_name,
 				line_no,
-				str[i],
 				len,
 				str
 			);
@@ -353,11 +353,10 @@ int parseNum(char const *str, int len)
 		if (!(str[0] >= '0' && str[0] <= '9')) {
 			fprintf(
 				stderr,
-				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "unexpected character '%c'\n"
+				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "expected number literal; found:\n"
 				"	%.*s\n",
 				src_name,
 				line_no,
-				str[0],
 				len,
 				str
 			);
@@ -373,7 +372,7 @@ int parseNum(char const *str, int len)
 			if (len == 2) {
 				fprintf(
 					stderr,
-					COL_WHITE "%s:%d: " COL_RED "error: " COL_END "expected hexadecimal number\n"
+					COL_WHITE "%s:%d: " COL_RED "error: " COL_END "expected hexadecimal literal; found:\n"
 					"	0x\n",
 					src_name,
 					line_no
@@ -538,18 +537,35 @@ void growLisBuf(char const *line, int len)
 {
 	int start = lis_buf.len;
 
+	if (len >= 3 && memcmp(line, "SET", 3) == 0) {
+		// Amend previous line (belonging to corresponding label)
+
+		for (int i = 0; i < len + 1; i++) {
+			push(&lis_buf, 0);
+		}
+
+		lis_buf.data[start - 1] = ' ';
+		memcpy(lis_buf.data + start, line, len);
+		lis_buf.data[start + len] = '\n';
+
+		int i = start;
+		do {
+			i--;
+		} while (i >= 0 && lis_buf.data[i] != '\n');
+
+		memset(lis_buf.data + i + 1, ' ', 9);
+		return;
+	}
+
 	for (int i = 0; i < len + 19; i++) {
 		push(&lis_buf, 0);
 	}
 
-	int word_idx = out_buf.len / 4;
+	int word_idx = out_buf.len / 4 - 1;
 
 	if (line[len - 1] == ':') {
-		for (int i = 0; i < 9; i++) {
-			lis_buf.data[start + 9 + i] = ' ';
-		}
-	} else {
-		word_idx--;
+		word_idx++;
+		memset(lis_buf.data + start + 9, ' ', 9);
 	}
 
 	sprintf(lis_buf.data + start, "%08x", word_idx);
@@ -596,10 +612,24 @@ void parseLine(char const *data, int len, bool parent_has_lab)
 	}
 
 	if (data[i] == ':') {
-		has_lab = true;
+		if (parent_has_lab) {
+			fprintf(
+				stderr,
+				COL_WHITE "%s:%d: " COL_RED "error: " COL_END "multiple labels on a single line\n"
+				"	%.*s: %.*s\n",
+				src_name,
+				line_no,
+				defs.data[defs.len - 1].name_len,
+				defs.data[defs.len - 1].name,
+				len,
+				data
+			);
+			syn_err = true;
+			return;
+		}
 
 		for (int j = 0; j < defs.len; j++) {
-			if (defs.data[j].name_len == i && strncmp(defs.data[j].name, data, i) == 0) {
+			if (defs.data[j].name_len == i && memcmp(defs.data[j].name, data, i) == 0) {
 				fprintf(
 					stderr,
 					COL_WHITE "%s:%d: " COL_RED "error: " COL_END "duplicate label definition\n"
@@ -656,7 +686,7 @@ next_line:
 	if (k < len) {
 		fprintf(
 			stderr,
-			COL_WHITE "%s:%d: " COL_RED "error: " COL_END "unexpected character '%c'\n"
+			COL_WHITE "%s:%d: " COL_RED "error: " COL_END "unexpected character '%c' after operand\n"
 			"	%.*s\n",
 			src_name,
 			line_no,
@@ -676,7 +706,7 @@ void fillLabels()
 {
 	for (int i = 0; i < uses.len; i++) {
 		for (int j = 0; j < defs.len; j++) {
-			if (!(defs.data[j].name_len == uses.data[i].name_len && strncmp(defs.data[j].name, uses.data[i].name, defs.data[j].name_len) == 0)) {
+			if (!(defs.data[j].name_len == uses.data[i].name_len && memcmp(defs.data[j].name, uses.data[i].name, defs.data[j].name_len) == 0)) {
 				continue;
 			}
 
