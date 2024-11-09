@@ -54,79 +54,79 @@ typedef struct {
 } Ins;
 
 Ins const ins[] = {
-	(Ins) {
+	{
 		.mnem	= "ldc",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "adc",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "ldl",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "stl",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "ldnl",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "stnl",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "add",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "sub",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "shl",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "shr",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "adj",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "a2sp",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "sp2a",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "call",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "return",
 		.op	= false,
 	},
-	(Ins) {
+	{
 		.mnem	= "brz",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "brlz",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "br",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "HALT",
 		.op	= false,
 	},
@@ -136,11 +136,11 @@ Ins const ins[] = {
 #define BR_END_IDX	17
 
 Ins const ps_ins[] = {
-	(Ins) {
+	{
 		.mnem	= "data",
 		.op	= true,
 	},
-	(Ins) {
+	{
 		.mnem	= "SET",
 		.op	= true,
 	},
@@ -814,7 +814,10 @@ int main(int argc, char *argv[])
 	}
 
 	line.data = tryMalloc(1);
+
+	// Separate buffer as input file may not have an extension
 	out_name.data = tryMalloc(1);
+
 	out_buf.data = tryMalloc(1);
 	lis_buf.data = tryMalloc(1);
 	defs.data = tryMalloc(sizeof (Label));
@@ -890,6 +893,10 @@ eof:
 			push(&out_name, '.');
 			push(&out_name, 'o');
 
+			// Since creat() takes a null terminated string
+			push(&out_name, 0);
+			out_name.len--;
+
 			int out = creat(out_name.data, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 			if (out < 0) {
 				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
@@ -904,6 +911,11 @@ eof:
 			}
 
 			out_name.data[out_name.len - 1] = 'l';
+			push(&out_name, 's');
+			push(&out_name, 't');
+			push(&out_name, 0);
+			out_name.len--;
+
 			int lis = creat(out_name.data, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 			if (lis < 0) {
 				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
