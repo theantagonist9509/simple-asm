@@ -1,3 +1,14 @@
+/*****************************************************************
+*
+*  DECLARATION OF AUTHORSHIP
+*
+*  I hereby declare that this source file is my own unaided work.
+*
+*  Tejas Tanmay Singh
+*  2301AI30
+*
+*****************************************************************/
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>

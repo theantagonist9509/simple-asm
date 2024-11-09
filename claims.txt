@@ -1,0 +1,30 @@
+- The Assembler
+	- The assembler submitted parses the source file once, during which it updates a table of symbol (label) names and values.
+	- The assembler diagnoses the following label errors:
+		- Duplicate labels
+		- Undefined labels
+		- Unused labels (warning)
+	- The assembler produces an advanced listing file.
+	- The assembler's source file makes use of a table of instruction names and expected operands.
+	- The assembler assembles the valid test programs test1.asm, test2.asm, test3.asm, test4.asm, and test5.asm.
+	- The assembler diagnoses the errors in the erraneous test program test6.asm.
+	- The assembler implements the 'SET' instruction, whose use is demonstrated in the program test5.asm.
+
+- The Bubble-Sort Program
+	- The bubble-sort program bubble.asm assembles.
+	- The bubble-sort program bubble.asm works.
+
+- The Emulator
+	- The emulator loads object files.
+	- The emulator produces a memory dump with the '-before' and '-after' options.
+	- The emulator executes the valid test programs.
+	- The emulator detects malformed object files.
+
+ - Test Cases
+ 	- In addition to the bubble-sort program, the following test programs (and their respective log, listing, and object files) are provided:
+		- test1.asm (Fibonacci)
+		- test2.asm (factorial)
+		- test3.asm (division)
+		- test4.asm (array sum)
+		- test5.asm (SET example)
+		- test6.asm (failure example)

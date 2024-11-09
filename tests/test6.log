@@ -1,0 +1,18 @@
+[1;37mtest6.asm:15: [1;31merror: [0mduplicate label definition
+	dup:
+[1;37mtest6.asm:17: [1;31merror: [0mexpected octal literal; found:
+	078
+[1;37mtest6.asm:18: [1;31merror: [0mexpected operand to instruction
+	ldc
+[1;37mtest6.asm:19: [1;31merror: [0munexpected operand to instruction
+	add 16
+[1;37mtest6.asm:20: [1;31merror: [0munexpected character ',' after operand
+	ldc 0x10, 24
+[1;37mtest6.asm:21: [1;31merror: [0mlabel names must begin with a letter
+	0def:
+[1;37mtest6.asm:22: [1;31merror: [0munknown instruction
+	fibble
+[1;37mtest6.asm:16: [1;31merror: [0mundefined label
+	undef
+[1;37mtest6.asm:14: [1;35mwarning: [0munused label
+	dup
