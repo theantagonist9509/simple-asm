@@ -9,7 +9,7 @@
 ;
 ;****************************************************************
 
-; Compute n!
+; Computes n!
 ; Result stored in 'prod'
 
 loop:

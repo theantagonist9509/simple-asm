@@ -20,3 +20,4 @@ add 16
 ldc 0x10, 24
 0def:
 fibble
+SET 42

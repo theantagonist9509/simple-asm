@@ -9,7 +9,7 @@
 ;
 ;****************************************************************
 
-; Computes nth Fibonacci number after initial sequence 0, 1
+; Computes nth Fibonacci number after initial sequence of 0, 1
 ; Result stored in 'b'
 
 loop:
@@ -19,14 +19,14 @@ loop:
 	brz halt
 
 	ldl b
-	stl temp
+	stl tmp
 
 	ldl b
 	ldl a
 	add
 	stl b
 
-	ldl temp
+	ldl tmp
 	stl a
 
 	ldl i
@@ -39,6 +39,6 @@ halt:
 
 n:	data 10
 i:	data 0
-temp:	data 0
+tmp:	data 0
 a:	data 0
 b:	data 1

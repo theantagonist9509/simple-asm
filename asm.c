@@ -10,12 +10,15 @@
 *****************************************************************/
 
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+// S_IRUSR, ...
+#include <sys/stat.h>
 
 #define COL_RED		"\033[1;31m"
 #define COL_PUR		"\033[1;35m"

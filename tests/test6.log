@@ -12,6 +12,8 @@
 	0def:
 [1;37mtest6.asm:22: [1;31merror: [0munknown instruction
 	fibble
+[1;37mtest6.asm:23: [1;31merror: [0mexpected label preceeding 'SET'
+	SET 42
 [1;37mtest6.asm:16: [1;31merror: [0mundefined label
 	undef
 [1;37mtest6.asm:14: [1;35mwarning: [0munused label
