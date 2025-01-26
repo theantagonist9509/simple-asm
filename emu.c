@@ -75,7 +75,7 @@ void exec(bool print)
 	int b = 0;
 	int pc = 0;
 	int sp = 0;
-	while (true) {
+	while (pc >= 0 && pc < mem.len / 4) {
 		int word = *(int *) (mem.data + 4 * pc);
 		int ins = word & 0xff;
 		int op = word >> 8;
@@ -165,6 +165,9 @@ void exec(bool print)
 			);
 		}
 	}
+
+	fprintf(stderr, COL_RED "error: " COL_END "pc=0x%08x is out of bounds\n", pc);
+	exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[])

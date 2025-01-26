@@ -20,9 +20,6 @@ stl b
 call div
 HALT
 
-
-
-
 div:
 	stl retAddr
 

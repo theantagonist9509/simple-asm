@@ -220,11 +220,7 @@ bool isStrzStrnEq(char const *str, char const *strn, int n)
 		i++;
 	}
 
-	if (str[i] != 0 || i < n) {
-		return false;
-	}
-
-	return true;
+	return (str[i] == 0 && i == n);
 }
 
 void parseSingle(char const *sym, int len)
@@ -800,7 +796,7 @@ void fillLisBuf()
 	}
 }
 
-void writeAll(int fd, char const *data, int len)
+int writeAll(int fd, char const *data, int len)
 {
 	int written = 0;
 	int tot_written = 0;
@@ -809,10 +805,7 @@ void writeAll(int fd, char const *data, int len)
 		written = write(fd, data + tot_written, len - tot_written);
 	}
 
-	if (written < 0) {
-		fprintf(stderr, COL_RED "fatal error: " COL_END "failed to write to output file '%.*s': %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	return tot_written;
 }
 
 int main(int argc, char *argv[])
@@ -913,14 +906,17 @@ eof:
 
 			int out = creat(out_name.data, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 			if (out < 0) {
-				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%s': %s\n", out_name.data, strerror(errno));
 				return EXIT_FAILURE;
 			}
 
-			writeAll(out, out_buf.data, out_buf.len);
+			if (writeAll(out, out_buf.data, out_buf.len) < out_buf.len) {
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to write to output file '%s': %s\n", out_name.data, strerror(errno));
+				return EXIT_FAILURE;
+			}
 
 			if (close(out) < 0) {
-				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close output file '%s': %s\n", out_name.data, strerror(errno));
 				return EXIT_FAILURE;
 			}
 
@@ -932,11 +928,14 @@ eof:
 
 			int lis = creat(out_name.data, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 			if (lis < 0) {
-				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to create output file '%s': %s\n", out_name.data, strerror(errno));
 				return EXIT_FAILURE;
 			}
 
-			writeAll(lis, lis_buf.data, lis_buf.len);
+			if (writeAll(lis, lis_buf.data, lis_buf.len) < lis_buf.len) {
+				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to write to output file '%s': %s\n", out_name.data, strerror(errno));
+				return EXIT_FAILURE;
+			}
 
 			if (close(lis) < 0) {
 				fprintf(stderr, COL_RED "fatal error: " COL_END "failed to close output file '%.*s': %s\n", out_name.len, out_name.data, strerror(errno));
